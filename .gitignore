@@ -1,2 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.mypy_cache
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+.venv/
+
+# Env files / secrets
 .env
-.venv
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# Docker volumes & data
+ollama-data/
+postgres-data/
+redis-data/
+qdrant-data/
+
+# Testing & Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+

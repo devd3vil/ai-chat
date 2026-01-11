@@ -14,10 +14,12 @@ import json
 import httpx
 
 # LLaMA model to use (must be available in local Ollama)
-MODEL = "llama3.1"
+# Using llama3.2 which provides better responses
+MODEL = "llama3.2"
 
 # Local Ollama API endpoint
-URL = "http://localhost:11434/api/generate"
+# Use 'ollama' service name for Docker, 'localhost' for local development
+URL = "http://ollama:11434/api/generate"
 
 def stream(prompt: str) -> str:
     """Stream tokens from local LLaMA and return complete response.
@@ -45,7 +47,8 @@ def stream(prompt: str) -> str:
         json={"model": MODEL, "prompt": prompt, "stream": True},
         timeout=120
     ) as r:
-        r.raise_for_status()
+        r.raise_for_status() 
+
         
         # Process each line of the streaming response
         for line in r.iter_lines():

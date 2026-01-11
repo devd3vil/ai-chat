@@ -12,8 +12,10 @@ Dependencies:
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
 
@@ -24,18 +26,58 @@ from fastapi.responses import StreamingResponse
 load_dotenv()
 
 # Initialize OpenAI client (for potential future use with OpenAI APIs)
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+# Use empty string as default if key not provided
+openai_key = os.environ.get("OPENAI_API_KEY", "")
+if openai_key:
+    client = OpenAI(api_key=openai_key)
+else:
+    client = None  # OpenAI integration disabled without API key
 
 # Create FastAPI application instance
 app = FastAPI()
+
+# Mount static files (HTML, CSS, JS)
+static_path = Path(__file__).parent.parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 class Ask(BaseModel):
     """Request model for AI questions.
     
     Attributes:
         question: The user's question to be answered by the LLM
+        context: Previous conversation messages for context (optional)
     """
     question: str
+    context: str = ""  # Optional: previous conversation for context
+
+
+@app.get("/")
+def root():
+    """Redirect to chat interface.
+    
+    Returns:
+        dict: Welcome message and API info
+    """
+    return {
+        "message": "Welcome to AI Chat API",
+        "ui": "Visit http://localhost:8000/static/index.html",
+        "api_docs": "Visit http://localhost:8000/docs"
+    }
+
+
+@app.get("/chat")
+def chat_page():
+    """Serve the chat interface HTML page.
+    
+    Returns:
+        HTML page with chat UI
+    """
+    from fastapi.responses import FileResponse
+    html_path = Path(__file__).parent.parent / "static" / "index.html"
+    if html_path.exists():
+        return FileResponse(str(html_path))
+    return {"error": "Chat UI not found"}
 
 
 @app.post("/ask")
@@ -46,14 +88,25 @@ def ask(req: Ask):
     the full concatenated response as a single JSON object. Useful for
     applications that need the complete answer before processing.
     
+    If context is provided, it prepends the previous conversation to the prompt
+    so the LLM understands the conversation flow.
+    
     Args:
-        req: Ask object containing the user's question
+        req: Ask object containing the user's question and optional context
         
     Returns:
         dict: Contains "answer" key with the full generated text
     """
+    # Build the full prompt with context if provided
+    if req.context:
+        # If we have conversation history, include it in the prompt
+        full_prompt = f"Previous conversation:\n{req.context}\n\nCurrent question: {req.question}"
+    else:
+        # If no context, just use the question
+        full_prompt = req.question
+    
     # Stream tokens from LLaMA and collect into a single string
-    resp = stream(req.question)
+    resp = stream(full_prompt)
     return {"answer": resp}
 
 
@@ -65,8 +118,11 @@ def ask_stream(req: Ask):
     local LLaMA model. Useful for real-time UI updates and lower latency
     user experience. Use curl -N flag or accept streaming responses.
     
+    If context is provided, it prepends the previous conversation to the prompt
+    so the LLM understands the conversation flow and provides contextual responses.
+    
     Args:
-        req: Ask object containing the user's question
+        req: Ask object containing the user's question and optional context
         
     Returns:
         StreamingResponse: Streams plain text tokens in real-time
@@ -74,7 +130,15 @@ def ask_stream(req: Ask):
     Example:
         curl -N -X POST http://localhost:8000/ask_stream \\
           -H "Content-Type: application/json" \\
-          -d '{"question": "Explain quantum computing"}'
+          -d '{"question": "Tell me more", "context": "User: What is AI?\\nAssistant: AI is..."}'
     """
+    # Build the full prompt with context if provided
+    if req.context:
+        # If we have conversation history, include it in the prompt
+        full_prompt = f"Previous conversation:\n{req.context}\n\nCurrent question: {req.question}"
+    else:
+        # If no context, just use the question
+        full_prompt = req.question
+    
     # Return streaming response with tokens generated in real-time
-    return StreamingResponse(stream_tokens(req.question), media_type="text/plain")
+    return StreamingResponse(stream_tokens(full_prompt), media_type="text/plain")
