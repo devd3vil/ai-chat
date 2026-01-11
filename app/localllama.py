@@ -1,25 +1,29 @@
 """Local LLaMA integration module for AI-app.
 
 This module handles communication with a local Ollama LLaMA server.
-Ensure Ollama is running and the llama3.1 model is available:
+Ensure Ollama is running and the llama3.2 model is available:
     ollama serve
-    ollama pull llama3.1
+    ollama pull llama3.2
 
 Dependencies:
 - httpx: HTTP client for streaming responses
 - json: JSON parsing for Ollama API responses
+- os: Environment variable access
 """
 
 import json
+import os
 import httpx
 
 # LLaMA model to use (must be available in local Ollama)
-# Using llama3.2 which provides better responses
 MODEL = "llama3.2"
 
-# Local Ollama API endpoint
-# Use 'ollama' service name for Docker, 'localhost' for local development
-URL = "http://ollama:11434/api/generate"
+# Ollama server configuration
+# Read from environment variable, default to localhost for local development
+# In Docker, set OLLAMA_HOST=ollama in docker-compose.yaml
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "localhost")
+OLLAMA_PORT = os.environ.get("OLLAMA_PORT", "11434")
+URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/generate"
 
 def stream(prompt: str) -> str:
     """Stream tokens from local LLaMA and return complete response.
