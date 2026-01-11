@@ -1,9 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ai-app"
 version = "0.1.0"
 requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
+]
 
-[tool.ruff]
+[tool.setuptools.packages.find]
 line-length = 100
 
 [tool.ruff.lint]
